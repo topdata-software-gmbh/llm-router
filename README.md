@@ -1,7 +1,95 @@
 # llm-router
 
-A brief description of llm-router.
+A central LLM provider/model assignment resolver for a small fleet of
+projects. It **resolves** purposes to ordered `{provider, model, base_url,
+api_key}` chains — it is a directory, **not** a proxy; inference stays external.
+
+Owns, in one place:
+
+- **Providers** — base URL + API key (cloud keys live here, not in per-project env).
+- **Models** — the detected/hand-added catalog.
+- **Assignments** — a purpose key (`project:job`, e.g. `git-digest:digest`) mapped
+  to an ordered chain of `provider/model` strings (primary first, fallbacks after).
+
+Home-LAN only: single admin, trusted network, **no auth / no TLS** in v1.
 
 ## Getting Started
 
-Instructions to get the project up and running.
+Requires Python 3.12+ and `uv`.
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -e ".[dev]"
+uv run alembic upgrade head        # create SQLite schema
+```
+
+Run the server:
+
+```bash
+uv run uvicorn llm_router.main:app --reload
+```
+
+The database lives at `llm_router.db` by default; override with
+`LLM_ROUTER_DB=/path/to/router.db`.
+
+## Usage
+
+Populate the catalog and an assignment, then resolve:
+
+```bash
+llm-router scan                          # detect providers/models from env + ollama + ports
+llm-router provider add openai openai https://api.openai.com/v1 --api-key sk-...
+llm-router assignment set git-digest:digest git-digest openai/gpt-4o-mini,anthropic/claude-3-haiku
+llm-router resolve git-digest:digest     # print the expanded chain
+```
+
+HTTP API:
+
+```text
+GET  /api/providers            list providers
+POST /api/providers/upsert     add/update a provider
+GET  /api/models               list catalog models
+POST /api/models/upsert        add/update a catalog model
+PUT  /api/assignments/{purpose}  set an assignment chain
+GET  /api/assignments/{purpose}  get an assignment
+GET  /api/assignments          list assignments
+GET  /api/resolve/{purpose}    resolve to ordered connection chain
+GET  /api/catalog              full provider + model catalog
+POST /api/scan                 re-run detection and persist new providers/models
+```
+
+MCP server (for agents):
+
+```bash
+llm-router-mcp
+```
+
+Tools: `resolve_purpose`, `list_assignments`, `get_catalog`.
+
+## Client library
+
+`llm_router_client` (in this repo) lets projects consume the router:
+
+```python
+from llm_router_client.pydantic_ai import router_model
+from llm_router_client.fallback import with_fallbacks
+```
+
+Set `LLM_ROUTER_URL` (default `http://localhost:8000`).
+
+## Project layout
+
+```
+src/llm_router/          server: models, core (detect/resolve), routers, cli, mcp
+src/llm_router_client/   shared client library for consumers
+alembic/                 schema migrations
+tests/                   pytest suite
+```
+
+## Relationships
+
+`provider` holds credentials; `model` is the detected catalog; `assignment`
+maps `project:job` → ordered `provider/model` chain. The chain is plain JSON
+text and is deliberately not FK-constrained to `model` — an assignment may
+reference a model not yet in the catalog.

@@ -9,3 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial project structure with README and CHANGELOG.
+- FastAPI server with provider/model/assignment management and purpose resolution.
+- Typer CLI (`scan`, `provider`, `assignment`, `catalog`, `resolve`).
+- MCP server (`resolve_purpose`, `list_assignments`, `get_catalog`).
+- Auto-detection of providers/models (env keys, local ports, `ollama list`).
+- Shared `llm_router_client` library: `resolve_chain`, PydanticAI
+  `router_model`/`router_model_chain`, and `with_fallbacks` chain walker.
+- Alembic-managed SQLite schema (provider, model, assignment tables).

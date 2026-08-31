@@ -42,3 +42,7 @@ Desktop.ini
 .tox/
 coverage/
 htmlcov/
+
+# Runtime database
+*.db
+*.sqlite3
