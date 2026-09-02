@@ -159,21 +159,18 @@ def upgrade() -> None:
     op.create_table(
         "api_key",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("key_hash", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("prefix", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("key", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("active", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_api_key_key_hash"), "api_key", ["key_hash"], unique=True)
-    op.create_index(op.f("ix_api_key_prefix"), "api_key", ["prefix"], unique=False)
+    op.create_index(op.f("ix_api_key_key"), "api_key", ["key"], unique=True)
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_api_key_prefix"), table_name="api_key")
-    op.drop_index(op.f("ix_api_key_key_hash"), table_name="api_key")
+    op.drop_index(op.f("ix_api_key_key"), table_name="api_key")
     op.drop_table("api_key")
 ```
 
@@ -185,10 +182,11 @@ def downgrade() -> None:
 Add a `llm-router key` CLI command for managing API keys directly in the database. **No API endpoint** - keys are managed exclusively via local CLI.
 
 #### Security Design:
-- Keys are stored **hashed** (SHA-256) in the database, never plaintext
-- Only the hash is stored; the raw key is shown once on creation
+- Keys are stored **plaintext** in the database (see problem statement — validation requires matching the full key)
+- `llm-router key list` shows the **full key values** for all registered keys
 - CLI requires direct database access (no remote key management)
 - Keys follow the format `sk-llmr-<random>` for easy identification
+- **No API endpoint** for key management — the DB is only reachable via local CLI
 
 ```python
 # [NEW FILE] src/llm_router/models.py (add to existing file)
@@ -206,8 +204,9 @@ Four tables:
   can pick from.
 - ``Assignment``: maps a purpose key (``project:job``, e.g. ``git-digest:digest``)
   to an ordered chain of ``provider/model`` strings, stored as JSON text.
-- ``ApiKey``: stores hashed API keys for authenticating to the router.
-  Keys are hashed with SHA-256; the raw key is shown once on creation.
+- ``ApiKey``: stores the registered API keys for authenticating to the router.
+  Keys follow the format ``sk-llmr-<random>`` and are stored plaintext. They
+  are managed exclusively via the local CLI (no API endpoint).
 
 ``Assignment.chain`` is intentionally **not** FK-constrained to ``Model``: an
 assignment may reference a model that is not (yet) in the detected catalog.
@@ -260,17 +259,17 @@ class Assignment(SQLModel, table=True):
 
 
 class ApiKey(SQLModel, table=True):
-    """Stores hashed API keys for router authentication.
+    """Stores the registered API keys for router authentication.
 
-    The raw key is only shown once on creation. The hash is stored
-    for verification. Keys follow the format ``sk-llmr-<random>``.
+    Keys follow the format ``sk-llmr-<random>`` and are stored plaintext.
+    They are managed exclusively via the local CLI (no API endpoint).
+    ``llm-router key list`` shows the full key values.
     """
 
     __tablename__ = "api_key"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    key_hash: str = Field(index=True, unique=True)
-    prefix: str = Field(index=True)  # First 8 chars for display: "sk-llmr-..."
+    key: str = Field(index=True, unique=True)  # Plaintext: "sk-llmr-..."
     name: Optional[str] = None  # Optional label for the key
     active: bool = True
     created_at: datetime = Field(default_factory=utcnow)
@@ -281,14 +280,15 @@ class ApiKey(SQLModel, table=True):
 # [NEW FILE] src/llm_router/core/api_key.py
 ```
 ```python
-"""API key management with secure hashing.
+"""API key management.
 
-Keys are stored as SHA-256 hashes. The raw key is only shown once
-on creation. This module provides functions for creating, verifying,
-and managing API keys.
+Keys are stored plaintext in the database (validation requires matching the
+full key). ``llm-router key list`` displays the full key values for all
+registered keys. This module provides functions for creating, verifying,
+listing, revoking, and deleting API keys. Keys are managed exclusively via
+the local CLI (no API endpoint).
 """
 
-import hashlib
 import secrets
 import string
 from datetime import datetime, timezone
@@ -313,68 +313,45 @@ def generate_api_key() -> str:
     """Generate a new API key in the format ``sk-llmr-<random>``.
 
     Returns:
-        The raw API key string (shown once, never stored).
+        The API key string, e.g. ``sk-llmr-x9K2fAbc...``.
     """
     random_part = _generate_random_string(KEY_LENGTH - len(KEY_PREFIX))
     return f"{KEY_PREFIX}{random_part}"
 
 
-def hash_api_key(raw_key: str) -> str:
-    """Hash an API key using SHA-256.
-
-    Args:
-        raw_key: The raw API key string.
-
-    Returns:
-        The hex-encoded SHA-256 hash.
-    """
-    return hashlib.sha256(raw_key.encode()).hexdigest()
-
-
-def create_api_key(
-    session: Session,
-    name: Optional[str] = None,
-) -> tuple[str, ApiKey]:
-    """Create a new API key and store its hash in the database.
+def create_api_key(session: Session, name: Optional[str] = None) -> ApiKey:
+    """Create a new API key and store it plaintext in the database.
 
     Args:
         session: Database session.
         name: Optional label for the key (e.g., "digester-prod").
 
     Returns:
-        Tuple of (raw_key, api_key_model). The raw key is shown once
-        and cannot be retrieved later.
+        The persisted ApiKey model (with its full plaintext ``key`` value).
     """
-    raw_key = generate_api_key()
-    key_hash = hash_api_key(raw_key)
-    prefix = raw_key[:8] + "..."  # "sk-llmr-..."
-
     api_key = ApiKey(
-        key_hash=key_hash,
-        prefix=prefix,
+        key=generate_api_key(),
         name=name,
         active=True,
     )
     session.add(api_key)
     session.commit()
     session.refresh(api_key)
+    return api_key
 
-    return raw_key, api_key
 
-
-def verify_api_key(session: Session, raw_key: str) -> bool:
-    """Verify an API key against stored hashes.
+def verify_api_key(session: Session, presented_key: str) -> bool:
+    """Verify a presented API key against stored plaintext keys.
 
     Args:
         session: Database session.
-        raw_key: The raw API key to verify.
+        presented_key: The raw API key from the ``X-API-Key`` header.
 
     Returns:
-        True if the key is valid and active, False otherwise.
+        True if the key exists and is active, False otherwise.
     """
-    key_hash = hash_api_key(raw_key)
     statement = select(ApiKey).where(
-        ApiKey.key_hash == key_hash,
+        ApiKey.key == presented_key,
         ApiKey.active == True,  # noqa: E712
     )
     api_key = session.exec(statement).first()
@@ -391,13 +368,13 @@ def verify_api_key(session: Session, raw_key: str) -> bool:
 
 
 def list_api_keys(session: Session) -> list[ApiKey]:
-    """List all API keys (without revealing hashes).
+    """List all registered API keys (with their full plaintext values).
 
     Args:
         session: Database session.
 
     Returns:
-        List of ApiKey models.
+        List of ApiKey models, oldest first.
     """
     return session.exec(select(ApiKey).order_by(ApiKey.created_at)).all()
 
@@ -481,13 +458,12 @@ def key_generate(
     from ..core.api_key import create_api_key
 
     with get_session() as session:
-        raw_key, api_key = create_api_key(session, name=name)
+        api_key = create_api_key(session, name=name)
 
     console.print("\n[green]✓ API key created successfully![/green]\n")
     console.print("[bold]Save this key now - it will NOT be shown again:[/bold]\n")
-    console.print(f"  [cyan]{raw_key}[/cyan]\n")
+    console.print(f"  [cyan]{api_key.key}[/cyan]\n")
     console.print(f"  Key ID:    {api_key.id}")
-    console.print(f"  Prefix:    {api_key.prefix}")
     if api_key.name:
         console.print(f"  Name:      {api_key.name}")
     console.print()
@@ -495,7 +471,7 @@ def key_generate(
 
 @app.command("list")
 def key_list():
-    """List all registered API keys (without revealing full keys)."""
+    """List all registered API keys (with their full plaintext values)."""
     from ..core.api_key import list_api_keys
 
     with get_session() as session:
@@ -508,7 +484,7 @@ def key_list():
 
     table = Table(title="API Keys")
     table.add_column("ID", style="dim")
-    table.add_column("Prefix", style="cyan")
+    table.add_column("Key", style="cyan")
     table.add_column("Name")
     table.add_column("Active")
     table.add_column("Created", style="dim")
@@ -521,7 +497,7 @@ def key_list():
 
         table.add_row(
             str(key.id),
-            key.prefix,
+            key.key,
             key.name or "-",
             f"[{active_style}]{active_text}[/{active_style}]",
             key.created_at.strftime("%Y-%m-%d %H:%M"),
@@ -658,7 +634,7 @@ if __name__ == "__main__":
 ```python
 """Authentication dependency verifying X-API-Key headers.
 
-This module verifies API keys against the database of hashed keys.
+This module verifies API keys against the database of stored plaintext keys.
 Keys are managed via the local CLI only (no API for key management).
 """
 
@@ -1077,7 +1053,6 @@ from llm_router.core.api_key import (
     create_api_key,
     delete_api_key,
     generate_api_key,
-    hash_api_key,
     list_api_keys,
     revoke_api_key,
     verify_api_key,
@@ -1098,24 +1073,16 @@ def test_generate_api_key_unique():
     assert len(keys) == 100
 
 
-def test_hash_api_key_deterministic():
-    """Hashing the same key should produce the same hash."""
-    key = "sk-llmr-test123"
-    hash1 = hash_api_key(key)
-    hash2 = hash_api_key(key)
-    assert hash1 == hash2
-
-
 def test_create_and_verify_api_key(session: Session):
     """Creating a key should allow verification."""
-    raw_key, api_key = create_api_key(session, name="test-key")
+    api_key = create_api_key(session, name="test-key")
 
-    assert raw_key.startswith("sk-llmr-")
+    assert api_key.key.startswith("sk-llmr-")
     assert api_key.name == "test-key"
     assert api_key.active is True
 
-    # Verify the key
-    assert verify_api_key(session, raw_key) is True
+    # Verify the key against its plaintext value
+    assert verify_api_key(session, api_key.key) is True
 
 
 def test_verify_invalid_key(session: Session):
@@ -1125,26 +1092,27 @@ def test_verify_invalid_key(session: Session):
 
 def test_verify_revoked_key(session: Session):
     """Revoked key should fail verification."""
-    raw_key, api_key = create_api_key(session)
+    api_key = create_api_key(session)
     revoke_api_key(session, api_key.id)
 
-    assert verify_api_key(session, raw_key) is False
+    assert verify_api_key(session, api_key.key) is False
 
 
-def test_list_api_keys(session: Session):
-    """Should list all created keys."""
-    create_api_key(session, name="key-1")
-    create_api_key(session, name="key-2")
+def test_list_api_keys_shows_plaintext(session: Session):
+    """list_api_keys should expose full plaintext key values."""
+    key1 = create_api_key(session, name="key-1")
+    key2 = create_api_key(session, name="key-2")
 
     keys = list_api_keys(session)
     assert len(keys) == 2
-    assert keys[0].name == "key-1"
-    assert keys[1].name == "key-2"
+    # Full plaintext keys are retrievable via list
+    assert keys[0].key == key1.key
+    assert keys[1].key == key2.key
 
 
 def test_revoke_api_key(session: Session):
     """Revoking a key should set it inactive."""
-    raw_key, api_key = create_api_key(session)
+    api_key = create_api_key(session)
 
     success = revoke_api_key(session, api_key.id)
     assert success is True
@@ -1156,7 +1124,7 @@ def test_revoke_api_key(session: Session):
 
 def test_delete_api_key(session: Session):
     """Deleting a key should remove it from the database."""
-    _, api_key = create_api_key(session)
+    api_key = create_api_key(session)
     key_id = api_key.id
 
     success = delete_api_key(session, key_id)
@@ -1247,6 +1215,8 @@ This endpoint is used by `topdata-tools` for service availability monitoring.
 
 API keys are managed exclusively via the local CLI with direct database access. There is **no API endpoint** for key management (security design).
 
+Keys are stored **plaintext** in the database. `llm-router key list` shows the full key values for all registered keys.
+
 ### Generate a new key
 
 ```bash
@@ -1262,7 +1232,6 @@ Save this key now - it will NOT be shown again:
   sk-llmr-abc123xyz789...
 
   Key ID:    1
-  Prefix:    sk-llmr-...
   Name:      digester-prod
 ```
 
@@ -1271,6 +1240,8 @@ Save this key now - it will NOT be shown again:
 ```bash
 llm-router key list
 ```
+
+Shows every registered key with its full plaintext value:
 
 ### Revoke a key
 
@@ -1311,7 +1282,7 @@ Add entries for health check and key management:
 ### Added
 - `/healthz` health check endpoint for service liveness probes (no auth required)
 - `llm-router key` CLI command for managing API keys (local DB access only)
-- `ApiKey` database model for storing hashed keys
+- `ApiKey` database model storing plaintext keys (`sk-llmr-...`)
 - Integration with topdata-tools service registry
 ```
 
@@ -1483,7 +1454,7 @@ If issues arise:
 
 - [ ] `/healthz` endpoint returns 200 without authentication
 - [ ] `llm-router key generate` creates a new API key and shows it once
-- [ ] `llm-router key list` shows all keys (without revealing hashes)
+- [ ] `llm-router key list` shows all keys (with their full plaintext values)
 - [ ] `llm-router key revoke <id>` sets a key inactive
 - [ ] `llm-router key delete <id>` permanently removes a key
 - [ ] API verification works with valid keys, fails with invalid/revoked keys
