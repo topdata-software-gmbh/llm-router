@@ -46,3 +46,6 @@ htmlcov/
 # Runtime database
 *.db
 *.sqlite3
+
+
+*.pdf
