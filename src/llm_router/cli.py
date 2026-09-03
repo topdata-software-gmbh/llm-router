@@ -1,12 +1,12 @@
 """llm-router Typer CLI entry point.
 
 Run ``llm-router --help`` (or ``-h``) for the available subcommands:
-``scan``, ``provider``, ``assignment``, ``catalog``, ``resolve``.
+``scan``, ``provider``, ``assignment``, ``catalog``, ``resolve``, ``key``.
 """
 
 import typer
 
-from .commands import assignment_cmd, catalog_cmd, provider_cmd, scan_cmd
+from .commands import assignment_cmd, catalog_cmd, key_cmd, provider_cmd, scan_cmd
 from .config import CLI_CONTEXT_SETTINGS
 
 app = typer.Typer(
@@ -19,6 +19,7 @@ app.add_typer(scan_cmd.app, name="scan")
 app.add_typer(provider_cmd.app, name="provider")
 app.add_typer(assignment_cmd.app, name="assignment")
 app.add_typer(catalog_cmd.app, name="catalog")
+app.add_typer(key_cmd.app, name="key")
 
 
 @app.command()

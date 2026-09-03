@@ -11,7 +11,10 @@ Owns, in one place:
 - **Assignments** — a purpose key (`project:job`, e.g. `git-digest:digest`) mapped
   to an ordered chain of `provider/model` strings (primary first, fallbacks after).
 
-Home-LAN only: single admin, trusted network, **no auth / no TLS** in v1.
+Home-LAN only: single admin, trusted network. API keys are optional: if no
+keys exist the service runs in zero-config dev mode (auth skipped); once a key
+is registered, requests to everything except `/healthz` must carry an
+`X-API-Key` header.
 
 ## Getting Started
 
@@ -77,6 +80,75 @@ from llm_router_client.fallback import with_fallbacks
 ```
 
 Set `LLM_ROUTER_URL` (default `http://localhost:8000`).
+
+## Health Check
+
+The service exposes a `/healthz` endpoint for liveness probes that does not require authentication:
+
+```bash
+curl http://localhost:8202/healthz
+# {"status":"ok","service":"llm-router"}
+```
+
+This endpoint is used by `topdata-tools` for service availability monitoring.
+
+## API Key Management
+
+API keys are managed exclusively via the local CLI with direct database access. There is **no API endpoint** for key management (security design).
+
+Keys are stored **plaintext** in the database. `llm-router key list` shows the full key values for all registered keys.
+
+### Generate a new key
+
+```bash
+llm-router key generate --name "digester-prod"
+```
+
+Output:
+```
+✓ API key created successfully!
+
+Save this key now - it will NOT be shown again:
+
+  sk-llmr-abc123xyz789...
+
+  Key ID:    1
+  Name:      digester-prod
+```
+
+### List all keys
+
+```bash
+llm-router key list
+```
+
+Shows every registered key with its full plaintext value:
+
+### Revoke a key
+
+```bash
+llm-router key revoke 1
+```
+
+### Delete a key (permanent)
+
+```bash
+llm-router key delete 1
+```
+
+### Using the key
+
+Set the environment variable for clients:
+
+```bash
+export TT_LLM_ROUTER_API_KEY="sk-llmr-..."
+```
+
+Or use the header directly:
+
+```bash
+curl -H "X-API-Key: $TT_LLM_ROUTER_API_KEY" http://localhost:8202/api/providers
+```
 
 ## Project layout
 

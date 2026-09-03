@@ -44,3 +44,12 @@ def client(isolated_db):
 
     app = create_app()
     return TestClient(app)
+
+
+@pytest.fixture
+def session(isolated_db):
+    """SQLModel session bound to the isolated test DB."""
+    from sqlmodel import Session
+
+    with Session(isolated_db) as s:
+        yield s

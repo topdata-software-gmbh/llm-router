@@ -16,3 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared `llm_router_client` library: `resolve_chain`, PydanticAI
   `router_model`/`router_model_chain`, and `with_fallbacks` chain walker.
 - Alembic-managed SQLite schema (provider, model, assignment tables).
+
+## [Unreleased]
+
+### Added
+- `/healthz` health check endpoint for service liveness probes (no auth required).
+- `llm-router key` CLI command for managing API keys (local DB access only,
+  **no API endpoint** for key management).
+- `ApiKey` database model storing plaintext keys (`sk-llmr-...`).
+- X-API-Key authentication on all endpoints except `/healthz` (skipped when no
+  keys exist).
+- Integration with the topdata-tools service registry (`tt health`, `tt auth check`).
+- Alembic migration `4a832ee347e6` adding the `api_key` table.
