@@ -14,6 +14,7 @@ from ._common import console, get_session
 
 app = typer.Typer(
     name="key",
+    help="Manage API keys for router authentication.",
     context_settings=CLI_CONTEXT_SETTINGS,
     no_args_is_help=True,
 )

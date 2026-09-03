@@ -9,6 +9,7 @@ from ._common import console, print_table
 
 app = typer.Typer(
     name="provider",
+    help="Inspect and manage LLM providers.",
     context_settings=CLI_CONTEXT_SETTINGS,
     no_args_is_help=True,
 )

@@ -8,6 +8,7 @@ from ._common import console, print_table
 
 app = typer.Typer(
     name="scan",
+    help="Scan the environment for available providers and models.",
     context_settings=CLI_CONTEXT_SETTINGS,
     no_args_is_help=True,
 )

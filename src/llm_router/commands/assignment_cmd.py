@@ -8,6 +8,7 @@ from ._common import console, print_table
 
 app = typer.Typer(
     name="assignment",
+    help="Manage purpose-to-chain assignments.",
     context_settings=CLI_CONTEXT_SETTINGS,
     no_args_is_help=True,
 )
