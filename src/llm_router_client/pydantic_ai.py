@@ -23,18 +23,30 @@ def _build(model: ModelConfig) -> OpenAIChatModel:
     return OpenAIChatModel(model_name=model.model, provider=provider)
 
 
-def router_model(purpose: str, *, base_url: Optional[str] = None) -> OpenAIChatModel:
+def router_model(
+    purpose: str, *, base_url: Optional[str] = None, token: Optional[str] = None
+) -> OpenAIChatModel:
     """Primary model for a purpose (picks chain[0])."""
-    return _build(resolve_chain(purpose, base_url=base_url)[0])
+    return _build(resolve_chain(purpose, base_url=base_url, token=token)[0])
 
 
 def router_model_chain(
-    purpose: str, *, base_url: Optional[str] = None
+    purpose: str,
+    *,
+    base_url: Optional[str] = None,
+    token: Optional[str] = None,
 ) -> List[OpenAIChatModel]:
     """Ordered pre-built models for the fallback engine (primary first)."""
-    return [_build(c) for c in resolve_chain(purpose, base_url=base_url)]
+    return [
+        _build(c) for c in resolve_chain(purpose, base_url=base_url, token=token)
+    ]
 
 
-def resolve_raw(purpose: str, *, base_url: Optional[str] = None) -> List[ModelConfig]:
+def resolve_raw(
+    purpose: str,
+    *,
+    base_url: Optional[str] = None,
+    token: Optional[str] = None,
+) -> List[ModelConfig]:
     """Low-level escape hatch for non-PydanticAI consumers needing raw credentials."""
-    return resolve_chain(purpose, base_url=base_url)
+    return resolve_chain(purpose, base_url=base_url, token=token)

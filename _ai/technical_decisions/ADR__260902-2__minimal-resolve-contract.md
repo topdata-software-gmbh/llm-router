@@ -5,6 +5,8 @@ date: 2026-09-02
 deciders: Marc
 tags: [llm-router, resolve-contract, api, client]
 adrId: 260902-2
+content_hash: 91cb4f730e4bd565d2b729a91fa7ba20
+id: f24a639c-a802-4299-a94c-9c3f83d02c1d
 ---
 
 # Minimal resolve contract — server returns topology only, client owns naming

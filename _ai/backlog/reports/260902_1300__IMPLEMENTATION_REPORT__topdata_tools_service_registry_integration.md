@@ -11,6 +11,8 @@ filesModified: 11
 filesDeleted: 0
 tags: [llm-router, topdata-tools, service-registry, auth, healthcheck, api-keys]
 documentType: IMPLEMENTATION_REPORT
+content_hash: 5185af449f1d815a6d25e3425efc1388
+id: 54fb40f1-8b59-4094-ab38-e2aadf52cbaa
 ---
 
 # Implementation Report: LLM Router Topdata-Tools Service Registry Integration

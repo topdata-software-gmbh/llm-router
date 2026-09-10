@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from ..db import DependsSession
+from ..iam_deps import require_llm_scope
 from ..models import Model, Provider
 
 router = APIRouter(prefix="/api/models", tags=["models"])
@@ -50,7 +51,11 @@ def list_models(session: Session = SessionDep):
     ]
 
 
-@router.post("/upsert", response_model=ModelOut)
+@router.post(
+    "/upsert",
+    response_model=ModelOut,
+    dependencies=[Depends(require_llm_scope("write"))],
+)
 def upsert_model(body: ModelIn, session: Session = SessionDep):
     provider = session.exec(
         select(Provider).where(Provider.prefix == body.provider_prefix)

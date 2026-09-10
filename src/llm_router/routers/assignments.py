@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from ..db import DependsSession
+from ..iam_deps import require_llm_scope
 from ..models import Assignment
 
 router = APIRouter(prefix="/api/assignments", tags=["assignments"])
@@ -46,7 +47,11 @@ def _to_out(assignment: Assignment) -> AssignmentOut:
     )
 
 
-@router.put("/{purpose}", response_model=AssignmentOut)
+@router.put(
+    "/{purpose}",
+    response_model=AssignmentOut,
+    dependencies=[Depends(require_llm_scope("write"))],
+)
 def upsert(purpose: str, body: AssignmentIn, session: Session = SessionDep):
     if body.key != purpose:
         raise HTTPException(400, "path purpose must equal body.key")

@@ -9,6 +9,8 @@ tags: [security, x-api-key, auth, pydantic-ai, llm-router-client, local-credenti
 estimatedComplexity: complex
 documentRevision: 2
 documentType: IMPLEMENTATION_PLAN
+content_hash: 7cecd7b2c25c298d9c6c724bed632a9a
+id: b4defe36-4c96-4e6b-a23a-319ea6ccf579
 ---
 
 # Implementation Plan: X-API-Key Router Auth, Client-Side Local Credentials & Client Repo Split

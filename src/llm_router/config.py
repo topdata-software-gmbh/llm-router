@@ -17,6 +17,15 @@ DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 # Base URL advertised for client resolution (used by docs/CLI hints).
 DEFAULT_BASE_URL = os.environ.get("LLM_ROUTER_URL", "http://localhost:8000")
 
+# --- IAM settings --------------------------------------------------------
+LLM_ROUTER_IAM_BASE_URL = os.environ.get(
+    "LLM_ROUTER_IAM_BASE_URL", "http://localhost:8230"
+)
+LLM_ROUTER_IAM_API_KEY = os.environ.get("LLM_ROUTER_IAM_API_KEY", "")
+LLM_ROUTER_IAM_DECISION_TTL = float(
+    os.environ.get("LLM_ROUTER_IAM_DECISION_TTL", "15.0")
+)
+
 # --- CLI conventions ------------------------------------------------------
 CLI_CONTEXT_SETTINGS = {
     "help_option_names": ["-h", "--help"],

@@ -11,10 +11,12 @@ Owns, in one place:
 - **Assignments** — a purpose key (`project:job`, e.g. `git-digest:digest`) mapped
   to an ordered chain of `provider/model` strings (primary first, fallbacks after).
 
-Home-LAN only: single admin, trusted network. API keys are optional: if no
-keys exist the service runs in zero-config dev mode (auth skipped); once a key
-is registered, requests to everything except `/healthz` must carry an
-`X-API-Key` header.
+Home-LAN only: single admin, trusted network. Authentication is handled by
+topdata-iam: every endpoint except `/healthz` requires an
+`Authorization: Bearer <jwt>` header, and the caller must hold a grant on the
+`llm` resource type (coarse `read` for reads, `read`/`write` for the upsert,
+delete, and scan endpoints). There is no accept-any-key dev mode — auth is
+**always** enforced (fail-closed).
 
 ## Getting Started
 
@@ -35,6 +37,14 @@ uv run uvicorn llm_router.main:app --reload
 
 The database lives at `llm_router.db` by default; override with
 `LLM_ROUTER_DB=/path/to/router.db`.
+
+IAM settings (defaults shown):
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `LLM_ROUTER_IAM_BASE_URL` | `http://localhost:8230` | topdata-iam service root |
+| `LLM_ROUTER_IAM_API_KEY` | _(empty)_ | this service's IAM agent key |
+| `LLM_ROUTER_IAM_DECISION_TTL` | `15.0` | seconds before a decision is re-queried |
 
 ## Usage
 
@@ -92,63 +102,21 @@ curl http://localhost:8202/healthz
 
 This endpoint is used by `topdata-tools` for service availability monitoring.
 
-## API Key Management
+## Authentication
 
-API keys are managed exclusively via the local CLI with direct database access. There is **no API endpoint** for key management (security design).
-
-Keys are stored **plaintext** in the database. `llm-router key list` shows the full key values for all registered keys.
-
-### Generate a new key
+All endpoints except `/healthz` require a Bearer JWT issued by topdata-iam:
 
 ```bash
-llm-router key generate --name "digester-prod"
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8202/api/providers
 ```
 
-Output:
-```
-✓ API key created successfully!
-
-Save this key now - it will NOT be shown again:
-
-  sk-llmr-abc123xyz789...
-
-  Key ID:    1
-  Name:      digester-prod
-```
-
-### List all keys
-
-```bash
-llm-router key list
-```
-
-Shows every registered key with its full plaintext value:
-
-### Revoke a key
-
-```bash
-llm-router key revoke 1
-```
-
-### Delete a key (permanent)
-
-```bash
-llm-router key delete 1
-```
-
-### Using the key
-
-Set the environment variable for clients:
-
-```bash
-export TT_LLM_ROUTER_API_KEY="sk-llmr-..."
-```
-
-Or use the header directly:
-
-```bash
-curl -H "X-API-Key: $TT_LLM_ROUTER_API_KEY" http://localhost:8202/api/providers
-```
+The token's `sub` must hold a grant on the `llm` resource type. Read endpoints
+(list/get/resolve/catalog) need a coarse `read` grant; the mutation endpoints
+(`POST /api/providers/upsert`, `DELETE /api/providers/{prefix}`,
+`POST /api/models/upsert`, `PUT /api/assignments/{purpose}`,
+`POST /api/scan`) additionally require a `write` grant. Requests without a
+valid token are rejected with `401`; requests with a token lacking the
+required grant get `403`.
 
 ## Project layout
 

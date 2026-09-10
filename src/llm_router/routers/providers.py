@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from ..db import DependsSession
+from ..iam_deps import require_llm_scope
 from ..models import Provider
 
 router = APIRouter(prefix="/api/providers", tags=["providers"])
@@ -35,7 +36,11 @@ def list_providers(session: Session = SessionDep):
     return session.exec(select(Provider).order_by(Provider.name)).all()
 
 
-@router.post("/upsert", response_model=ProviderOut)
+@router.post(
+    "/upsert",
+    response_model=ProviderOut,
+    dependencies=[Depends(require_llm_scope("write"))],
+)
 def upsert_provider(body: ProviderIn, session: Session = SessionDep):
     existing = session.exec(
         select(Provider).where(Provider.prefix == body.prefix)
@@ -52,7 +57,10 @@ def upsert_provider(body: ProviderIn, session: Session = SessionDep):
     return existing
 
 
-@router.delete("/{prefix}")
+@router.delete(
+    "/{prefix}",
+    dependencies=[Depends(require_llm_scope("write"))],
+)
 def delete_provider(prefix: str, session: Session = SessionDep):
     obj = session.exec(select(Provider).where(Provider.prefix == prefix)).first()
     if obj is None:

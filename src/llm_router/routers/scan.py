@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 from ..core.detect import scan as detect_scan
 from ..db import DependsSession
+from ..iam_deps import require_llm_scope
 from ..models import Model, Provider
 
 router = APIRouter(prefix="/api", tags=["scan"])
@@ -21,7 +22,11 @@ class ScanOut(BaseModel):
     models_detected: int
 
 
-@router.post("/scan", response_model=ScanOut)
+@router.post(
+    "/scan",
+    response_model=ScanOut,
+    dependencies=[Depends(require_llm_scope("write"))],
+)
 def run_scan(session: Session = SessionDep):
     result = detect_scan()
     existing_prefixes = {p.prefix for p in session.exec(select(Provider)).all()}

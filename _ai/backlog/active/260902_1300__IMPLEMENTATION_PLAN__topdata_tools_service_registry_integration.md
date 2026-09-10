@@ -9,6 +9,8 @@ tags: [llm-router, topdata-tools, service-registry, auth, healthcheck, cli, api-
 estimatedComplexity: moderate
 documentRevision: 1
 documentType: IMPLEMENTATION_PLAN
+content_hash: 965fe9b179cfa65c959c05f8fbd0bdf7
+id: 572121a1-4105-4b34-ad85-875783e762e1
 ---
 
 # Implementation Plan: LLM Router Topdata-Tools Service Registry Integration

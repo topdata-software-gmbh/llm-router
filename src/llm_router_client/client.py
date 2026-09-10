@@ -10,7 +10,7 @@ from typing import List, Optional
 
 import httpx
 
-from .config import router_url
+from .config import router_token, router_url
 
 DEFAULT_TTL_SECONDS = 300
 _cache: dict[str, tuple[float, list["ModelConfig"]]] = {}
@@ -40,18 +40,20 @@ def _http_get(
     *,
     timeout: float = 5.0,
     transport: Optional[httpx.BaseTransport] = None,
+    headers: Optional[dict] = None,
 ) -> httpx.Response:
     """Thin wrapper around GET so tests can inject a MockTransport."""
     if transport is not None:
         with httpx.Client(transport=transport) as client:
-            return client.get(url, timeout=timeout)
-    return httpx.get(url, timeout=timeout)
+            return client.get(url, timeout=timeout, headers=headers)
+    return httpx.get(url, timeout=timeout, headers=headers)
 
 
 def resolve_chain(
     purpose: str,
     *,
     base_url: Optional[str] = None,
+    token: Optional[str] = None,
     use_cache: bool = True,
     ttl: float = DEFAULT_TTL_SECONDS,
     transport: Optional[httpx.BaseTransport] = None,
@@ -59,6 +61,8 @@ def resolve_chain(
     """Fetch the ordered connection chain for a purpose from the router.
 
     The first entry is the primary; the rest are fallbacks in walk order.
+    ``token`` (or ``LLM_ROUTER_TOKEN``) is sent as a Bearer JWT for IAM-auth
+    routers; without it the router rejects the request with 401.
     Raises ``KeyError`` if the purpose has no assignment (404) and
     ``httpx.HTTPStatusError`` for server-side 4xx/5xx errors.
     """
@@ -67,7 +71,15 @@ def resolve_chain(
         expires, cached = _cache[purpose]
         if time.time() < expires:
             return cached
-    resp = _http_get(f"{url}/api/resolve/{purpose}", transport=transport)
+    auth_token = token or router_token()
+    headers = (
+        {"Authorization": f"Bearer {auth_token}"} if auth_token else None
+    )
+    resp = _http_get(
+        f"{url}/api/resolve/{purpose}",
+        transport=transport,
+        headers=headers,
+    )
     if resp.status_code == 404:
         raise KeyError(
             f"no assignment for purpose {purpose!r} "

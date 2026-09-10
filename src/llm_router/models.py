@@ -1,6 +1,6 @@
 """SQLModel ORM models for the llm-router.
 
-Four tables:
+Three tables:
 
 - ``Provider``: an LLM endpoint (cloud or local) with its own base URL and
   (for cloud) API key. The ``prefix`` is the short key used in chain entries
@@ -10,13 +10,12 @@ Four tables:
   can pick from.
 - ``Assignment``: maps a purpose key (``project:job``, e.g. ``git-digest:digest``)
   to an ordered chain of ``provider/model`` strings, stored as JSON text.
-- ``ApiKey``: stores the registered API keys for authenticating to the router.
-  Keys follow the format ``sk-llmr-<random>`` and are stored plaintext. They
-  are managed exclusively via the local CLI (no API endpoint).
 
 ``Assignment.chain`` is intentionally **not** FK-constrained to ``Model``: an
 assignment may reference a model that is not (yet) in the detected catalog.
 The provider is looked up by prefix during resolution.
+
+Authentication is handled by IAM Bearer JWT (no local API key table).
 """
 
 from datetime import datetime, timezone
@@ -62,21 +61,3 @@ class Assignment(SQLModel, table=True):
     chain: str = Field(default="[]")
     active: bool = True
     updated_at: datetime = Field(default_factory=utcnow)
-
-
-class ApiKey(SQLModel, table=True):
-    """Stores the registered API keys for router authentication.
-
-    Keys follow the format ``sk-llmr-<random>`` and are stored plaintext.
-    They are managed exclusively via the local CLI (no API endpoint).
-    ``llm-router key list`` shows the full key values.
-    """
-
-    __tablename__ = "api_key"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    key: str = Field(index=True, unique=True)  # Plaintext: "sk-llmr-..."
-    name: Optional[str] = None  # Optional label for the key
-    active: bool = True
-    created_at: datetime = Field(default_factory=utcnow)
-    last_used_at: Optional[datetime] = None

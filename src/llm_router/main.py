@@ -5,16 +5,16 @@ exposed as a module-level ``app`` for uvicorn and a ``create_app()`` factory
 for tests.
 
 Auth: the ``/healthz`` endpoint stays keyless for liveness probes; every
-other router is gated behind the ``verify_api_key`` dependency. When no API
-keys exist in the database, verification is a no-op (zero-config dev mode).
+other router is gated behind the IAM ``require_llm_scope`` dependency.
+Write endpoints additionally require the ``write`` scope.
 """
 
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, Depends, FastAPI
 
-from .auth import verify_api_key
 from .db import init_db
+from .iam_deps import require_llm_scope
 from .routers import assignments, health, models, providers, resolve, scan
 
 
@@ -25,11 +25,11 @@ async def lifespan(_: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="llm-router", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="llm-router", version="0.3.0", lifespan=lifespan)
     # Health check endpoint - always keyless (used by `tt health` probes).
     app.include_router(health.router)
-    # Authenticated endpoints.
-    api = APIRouter(dependencies=[Depends(verify_api_key)])
+    # Authenticated endpoints: coarse "read" gate on all routes.
+    api = APIRouter(dependencies=[Depends(require_llm_scope("read"))])
     api.include_router(providers.router)
     api.include_router(models.router)
     api.include_router(assignments.router)

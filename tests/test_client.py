@@ -74,6 +74,41 @@ def test_resolve_chain_cache_hit_skips_http():
     assert calls["n"] == 1  # second call served from cache, no HTTP
 
 
+def test_resolve_chain_sends_bearer_token():
+    sent = {}
+
+    def handler(request):
+        sent["auth"] = request.headers.get("Authorization")
+        return _ok_handler(request)
+
+    clear_cache()
+    resolve_chain(
+        "demo:job",
+        base_url="http://router",
+        use_cache=False,
+        token="jwt-abc",
+        transport=_transport(handler),
+    )
+    assert sent["auth"] == "Bearer jwt-abc"
+
+
+def test_resolve_chain_no_token_sends_no_auth_header():
+    sent = {}
+
+    def handler(request):
+        sent["auth"] = request.headers.get("Authorization")
+        return _ok_handler(request)
+
+    clear_cache()
+    resolve_chain(
+        "demo:job",
+        base_url="http://router",
+        use_cache=False,
+        transport=_transport(handler),
+    )
+    assert sent["auth"] is None
+
+
 def test_resolve_chain_server_500_raises():
     def handler(request):
         return httpx.Response(500, json={"detail": "boom"})

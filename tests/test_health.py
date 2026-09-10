@@ -13,6 +13,6 @@ def test_healthz_returns_ok(client: TestClient):
 
 
 def test_healthz_no_auth_required(client: TestClient):
-    """Health endpoint should work without X-API-Key header."""
+    """Health endpoint should work without any auth header."""
     response = client.get("/healthz")
     assert response.status_code == 200

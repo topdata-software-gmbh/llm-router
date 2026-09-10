@@ -5,6 +5,8 @@ date: 2026-09-02
 deciders: Marc
 tags: [llm-router, llm-router-client, packaging, architecture]
 adrId: 260902-1
+content_hash: cbb1d5faa7f22d0eb98f526c3de43b7f
+id: 0f026e86-a35b-4400-8b41-9facad593909
 ---
 
 # Client library lives in a separate llm-router-client project
