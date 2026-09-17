@@ -28,3 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keys exist).
 - Integration with the topdata-tools service registry (`tt health`, `tt auth check`).
 - Alembic migration `4a832ee347e6` adding the `api_key` table.
+
+### Fixed
+- Default router URL now targets the port-map-reserved port 8202 (was the 8000
+  trap default) in both `llm_router_client` and the server config; README updated.

@@ -89,7 +89,7 @@ from llm_router_client.pydantic_ai import router_model
 from llm_router_client.fallback import with_fallbacks
 ```
 
-Set `LLM_ROUTER_URL` (default `http://localhost:8000`).
+Set `LLM_ROUTER_URL` (default `http://localhost:8202`).
 
 ## Health Check
 

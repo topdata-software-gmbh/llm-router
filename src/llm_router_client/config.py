@@ -3,7 +3,7 @@
 import os
 from typing import Optional
 
-DEFAULT_ROUTER_URL = "http://localhost:8000"
+DEFAULT_ROUTER_URL = "http://localhost:8202"  # reserved port, see ~/devel/port-map
 
 
 def router_url() -> str:

@@ -121,3 +121,28 @@ def test_resolve_chain_server_500_raises():
             use_cache=False,
             transport=_transport(handler),
         )
+
+
+def test_router_url_defaults_to_reserved_port(monkeypatch):
+    """The default points at llm-router's reserved port (8202), not the 8000 trap."""
+    from llm_router_client.config import router_url
+
+    monkeypatch.delenv("LLM_ROUTER_URL", raising=False)
+    assert router_url() == "http://localhost:8202"
+
+
+def test_router_url_env_override(monkeypatch):
+    from llm_router_client.config import router_url
+
+    monkeypatch.setenv("LLM_ROUTER_URL", "http://custom:9999/")
+    assert router_url() == "http://custom:9999"
+
+
+def test_server_default_base_url_uses_reserved_port(monkeypatch):
+    import importlib
+
+    import llm_router.config as config_mod
+
+    monkeypatch.delenv("LLM_ROUTER_URL", raising=False)
+    importlib.reload(config_mod)
+    assert config_mod.DEFAULT_BASE_URL == "http://localhost:8202"

@@ -15,7 +15,8 @@ DATABASE_PATH = os.environ.get("LLM_ROUTER_DB", DEFAULT_DB_PATH)
 DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 
 # Base URL advertised for client resolution (used by docs/CLI hints).
-DEFAULT_BASE_URL = os.environ.get("LLM_ROUTER_URL", "http://localhost:8000")
+# 8202 is the reserved port (see ~/devel/port-map/ports-topdata.yaml).
+DEFAULT_BASE_URL = os.environ.get("LLM_ROUTER_URL", "http://localhost:8202")
 
 # --- IAM settings --------------------------------------------------------
 LLM_ROUTER_IAM_BASE_URL = os.environ.get(
