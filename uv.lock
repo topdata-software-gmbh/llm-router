@@ -732,25 +732,6 @@ wheels = [
 ]
 
 [[package]]
-name = "iam-client"
-version = "0.1.0"
-source = { directory = "/topdata/topdata-iam/src/iam_client" }
-dependencies = [
-    { name = "cryptography" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "pyjwt", extra = ["crypto"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cryptography", specifier = ">=42.0.0" },
-    { name = "fastapi", specifier = ">=0.110.0" },
-    { name = "httpx", specifier = ">=0.27.0" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8.0" },
-]
-
-[[package]]
 name = "idna"
 version = "3.19"
 source = { registry = "https://pypi.org/simple" }
@@ -985,7 +966,6 @@ dependencies = [
     { name = "alembic" },
     { name = "fastapi" },
     { name = "httpx" },
-    { name = "iam-client" },
     { name = "inquirerpy" },
     { name = "mcp" },
     { name = "openai" },
@@ -993,6 +973,7 @@ dependencies = [
     { name = "pydantic-ai-slim", extra = ["openai"] },
     { name = "rich" },
     { name = "sqlmodel" },
+    { name = "topdata-iam-client" },
     { name = "typer" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1015,7 +996,6 @@ requires-dist = [
     { name = "cryptography", marker = "extra == 'dev'", specifier = ">=42.0" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "iam-client", directory = "/topdata/topdata-iam/src/iam_client" },
     { name = "inquirerpy", specifier = ">=0.3.4" },
     { name = "mcp", specifier = "<2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8" },
@@ -1030,6 +1010,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.7" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.3" },
     { name = "sqlmodel", specifier = ">=0.0.21" },
+    { name = "topdata-iam-client", specifier = ">=0.2.0", index = "http://127.0.0.1:3141/topdata/packages/+simple/" },
     { name = "typer", specifier = ">=0.9" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
@@ -2015,6 +1996,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4e/f6/80760e98a08e6649d2d68afb6035af713121dfb615acce8c4f73810ec438/tiktoken-0.14.0-cp315-cp315t-musllinux_1_2_aarch64.whl", hash = "sha256:86f66c85e796f5d05d5c4a60ec1d40cbfebc47a32464053528c797163fa9ab89", size = 1251479, upload-time = "2026-08-17T19:49:36.419Z" },
     { url = "https://files.pythonhosted.org/packages/c5/84/50966fb6918a0fb9b32721277e5342bf729a2d74350074d662fbedf9772e/tiktoken-0.14.0-cp315-cp315t-musllinux_1_2_x86_64.whl", hash = "sha256:149d97453c4c98c04b081d64a85e635921269b532710d6faf81e9e82b790e7d3", size = 1316673, upload-time = "2026-08-17T19:49:37.756Z" },
     { url = "https://files.pythonhosted.org/packages/35/5e/9b01afd037bfa22a0033963fa091e0f75b6fb15cd85bffb42ff86e697323/tiktoken-0.14.0-cp315-cp315t-win_amd64.whl", hash = "sha256:561e7580f84a79859af1ef6f676968e9030fcc3fe195700b15235bca64f009c9", size = 987929, upload-time = "2026-08-17T19:49:38.947Z" },
+]
+
+[[package]]
+name = "topdata-iam-client"
+version = "0.2.0"
+source = { registry = "http://127.0.0.1:3141/topdata/packages/+simple/" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pyjwt", extra = ["crypto"] },
+]
+sdist = { url = "http://127.0.0.1:3141/topdata/packages/+f/03c/41cc6484e620d/topdata_iam_client-0.2.0.tar.gz", hash = "sha256:03c41cc6484e620d500e15aa5db500aa771d05e5cfc66ab9a8175ffdacb898df" }
+wheels = [
+    { url = "http://127.0.0.1:3141/topdata/packages/+f/fcb/324cbe058980d/topdata_iam_client-0.2.0-py3-none-any.whl", hash = "sha256:fcb324cbe058980db2ea16f3ce0c5069a4543a97d7e0a2ba38cc05c8089e5fe7" },
 ]
 
 [[package]]
