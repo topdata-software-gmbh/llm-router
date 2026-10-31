@@ -1,0 +1,10 @@
+project_id: llm-router
+technologies:
+  ansible: {}
+  bash: {}
+  fastapi: {}
+  python: {}
+  sqlmodel: {}
+export:
+  format: markdown
+  path: _ai/conventions.md
